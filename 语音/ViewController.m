@@ -73,10 +73,9 @@
     [[ICRecordManager shareManager] startRecordingWithFileName:self.recordName completion:^(NSError *error) {
         if (error) {   // 加了录音权限的判断
         } else {
-//            if ([_delegate respondsToSelector:@selector(voiceDidStartRecording)]) {
-//                [_delegate voiceDidStartRecording];
-//            }
+            [self timerInvalue];
             self.voiceHud.hidden = NO;
+            [self timer];
         }
     }];
 }
@@ -85,14 +84,20 @@
     __weak typeof(self) weakSelf = self;
     [[ICRecordManager shareManager] stopRecordingWithCompletion:^(NSString *recordPath) {
         if ([recordPath isEqualToString:shortRecord]) {
-//            if ([_delegate respondsToSelector:@selector(voiceRecordSoShort)]) {
-//                [_delegate voiceRecordSoShort];
-//            }
+            [self timerInvalue];
+            self.voiceHud.animationImages = nil;
+            self.voiceHud.image = [UIImage imageNamed:@"voiceShort"];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                self.voiceHud.hidden = YES;
+            });
             [[ICRecordManager shareManager] removeCurrentRecordFile:weakSelf.recordName];
         } else {    // send voice message
-//            if (_delegate && [_delegate respondsToSelector:@selector(chatBoxViewController:sendVoiceMessage:)]) {
-//                [_delegate chatBoxViewController:weakSelf sendVoiceMessage:recordPath];
-//            }
+            [self timerInvalue]; // 销毁定时器
+            self.voiceHud.hidden = YES;
+            if (recordPath) {
+            //发消息
+                NSLog(@"成功，发消息%@",recordPath);
+            }
         }
     }];
 }
@@ -100,6 +105,9 @@
 //
 - (void)chatBoxDidCancelRecordingVoice:(VoiceChatBtn *)chatBox
 {
+    
+    [self timerInvalue];
+    self.voiceHud.hidden = YES;
     
     [[ICRecordManager shareManager] removeCurrentRecordFile:self.recordName];
 
@@ -123,6 +131,13 @@
     NSTimeInterval timeInterval = [[NSDate date] timeIntervalSince1970];
     NSString *fileName = [NSString stringWithFormat:@"%ld",(long)timeInterval];
     return fileName;
+}
+
+#pragma mark -- 销毁定时器
+- (void)timerInvalue
+{
+    [_timer invalidate];
+    _timer  = nil;
 }
 
 @end
